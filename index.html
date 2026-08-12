@@ -857,12 +857,22 @@ function saveModal(){
   var payload = modalMode==="add"
     ? {action:"append", values:values}
     : {action:"updateRow", row:modalRow._sheetRow, match:{name:modalRow.name,url:modalRow.url}, values:values};
+  var _mMode=modalMode, _mRow=modalRow, _mVals=values;
   postWrite(payload).then(function(res){
     el("mSave").disabled=false;
     if(res&&res.ok){
       closeModal();
       toast(modalMode==="add" ? "Deal added" : "Deal updated");
-      load(false);
+      if(_mMode!=="add" && _mRow){
+        Object.keys(FIELDS).forEach(function(k){
+          var h=colName(k);
+          if(!h || !_mVals.hasOwnProperty(h)) return;
+          _mRow[k] = (k==="units"||k==="price") ? num(_mVals[h]) : _mVals[h];
+        });
+        if(_mRow.price>0 && _mRow.units>0){ _mRow.ppu = Math.round(_mRow.price/_mRow.units); }
+        _mRow._s = (_mRow._s+" "+Object.keys(_mVals).map(function(kk){ return _mVals[kk]; }).join(" ")).toLowerCase();
+        renderAll();
+      }else{ load(false); }
     }else{
       msg.className="m-msg err";
       msg.textContent="Failed: "+((res&&res.error)||"unknown error");

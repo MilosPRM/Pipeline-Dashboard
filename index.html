@@ -1,1 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Acquisition Pipeline</title>
+<style>
+:root{--bg:#0f1117;--panel:#171a23;--panel2:#1e2230;--line:#2a2f3f;--txt:#e6e8ef;--dim:#9aa1b4;--faint:#6b7288;--accent:#6366f1;--accent2:#818cf8;--green:#34d399;--amber:#fbbf24;--red:#f87171;--r:12px}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1680px;margin:0 auto;padding:20px 24px 80px}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#a855f7);display:grid;place-items:center;font-size:20px}
+h1{font-size:20px;margin:0;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--faint);font-size:12px;margin-top:2px}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:11px;color:var(--faint);display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.dot.stale{background:var(--amber)}
+.dot.err{background:var(--red)}
+button,select,input{font:inherit;color:inherit}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 14px;border-radius:9px;cursor:pointer;font-size:13px;transition:.15s;display:inline-block;text-decoration:none}
+.btn:hover{border-color:var(--accent);background:#252a3a;text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent2)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.kpi .lbl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.kpi .val{font-size:26px;font-weight:680;margin:8px 0 3px;letter-spacing:-.02em}
+.kpi .note{font-size:11.5px;color:var(--dim)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.panel-h{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.panel-h .right{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;color:var(--dim);font-weight:400}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px;display:flex;gap:7px;align-items:center;transition:.15s}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .n{background:rgba(255,255,255,.12);border-radius:10px;padding:1px 7px;font-size:11px;font-variant-numeric:tabular-nums}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.f input,.f select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;width:100%}
+.f input:focus,.f select:focus{outline:none;border-color:var(--accent)}
+.f.wide{grid-column:span 2}
+.range{display:flex;gap:6px;align-items:center}
+.range span{color:var(--faint)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{padding:10px 16px;cursor:pointer;font-size:13.5px;color:var(--dim);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--txt);border-bottom-color:var(--accent);font-weight:600}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-top:none;border-radius:0 0 var(--r) var(--r);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{position:sticky;top:0;background:var(--panel2);text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);font-weight:600;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);z-index:2}
+th:hover{color:var(--txt)}
+th.num{text-align:right}
+th .ar{opacity:.3;font-size:9px;margin-left:3px}
+th.sorted{color:var(--txt)}
+th.sorted .ar{opacity:1;color:var(--accent2)}
+td{padding:10px 12px;border-bottom:1px solid #21252f;vertical-align:top}
+tbody tr:hover{background:#1b1f2b;cursor:pointer}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.prop{font-weight:600}
+.addr{color:var(--dim);font-size:12px;max-width:260px}
+.muted{color:var(--faint)}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.st-new{background:#312e81;color:#c7d2fe}
+.st-proc{background:#1e3a8a;color:#bfdbfe}
+.st-uw{background:#134e4a;color:#99f6e4}
+.st-offer{background:#78350f;color:#fde68a}
+.st-loi{background:#713f12;color:#fef08a}
+.st-won{background:#14532d;color:#bbf7d0}
+.st-lost{background:#4c1d1d;color:#fecaca}
+.st-none{background:#1f2937;color:#cbd5e1}
+.pr-high{background:#4c1d1d;color:#fecaca}
+.pr-med{background:#78350f;color:#fde68a}
+.pr-low{background:#1f2937;color:#cbd5e1}
+.pr-new{background:#312e81;color:#c7d2fe}
+.unpriced{color:var(--faint);font-style:italic;font-size:12px}
+.ilink{color:var(--faint);font-size:13px;margin-left:4px}
+.ilink:hover{color:var(--accent2);text-decoration:none}
+.more{padding:14px;text-align:center;border-top:1px solid var(--line)}
+.empty{padding:60px 20px;text-align:center;color:var(--faint)}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.grp{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;align-self:start}
+.grp-h{padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.grp-h:hover{background:#252a3a}
+.grp-ico{width:32px;height:32px;border-radius:8px;background:var(--panel);display:grid;place-items:center;font-size:15px;flex:none}
+.grp-t{font-weight:600;font-size:14px}
+.grp-s{font-size:11.5px;color:var(--faint);margin-top:1px}
+.grp-n{margin-left:auto;background:var(--panel);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.grp-b{border-top:1px solid var(--line);max-height:340px;overflow-y:auto;display:none}
+.grp.open .grp-b{display:block}
+.grp-i{padding:9px 16px;border-bottom:1px solid #21252f;font-size:12.5px;cursor:pointer;display:flex;gap:10px}
+.grp-i:hover{background:var(--panel)}
+.gi-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi-v{color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+.an-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar-row{display:grid;grid-template-columns:150px 1fr 120px;gap:12px;align-items:center;font-size:12.5px}
+.bar-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.bar-track{background:var(--panel2);border-radius:5px;height:20px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a855f7);border-radius:5px;min-width:2px;transition:width .4s}
+.bar-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:.25s cubic-bezier(.4,0,.2,1);z-index:50;overflow-y:auto}
+.drawer.on{transform:none}
+.dr-h{padding:20px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:2}
+.dr-h h2{margin:0 0 6px;font-size:18px;letter-spacing:-.01em;padding-right:30px}
+.dr-x{position:absolute;top:18px;right:20px;background:none;border:none;color:var(--faint);font-size:22px;cursor:pointer;line-height:1}
+.dr-x:hover{color:var(--txt)}
+.dr-b{padding:20px 24px}
+.dr-row{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid #21252f;font-size:13px}
+.dr-row .k{color:var(--faint);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+.dr-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.spin{width:26px;height:26px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto 14px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err-box{background:#3b1215;border:1px solid #7f1d1d;color:#fecaca;padding:16px;border-radius:var(--r);margin-bottom:16px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:#fff;padding:11px 20px;border-radius:9px;font-size:13px;z-index:60;transition:.25s;opacity:0}
+.toast.on{transform:translateX(-50%);opacity:1}
+@media(max-width:760px){.wrap{padding:14px}.f.wide{grid-column:span 1}.bar-row{grid-template-columns:100px 1fr 80px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">&#127970;</div>
+      <div>
+        <h1>Acquisition Pipeline</h1>
+        <div class="sub">Commercial real estate deal tracking &amp; portfolio intelligence</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="status"><span class="dot" id="dot"></span><span id="statusTxt">Loading&hellip;</span></div>
+      <button class="btn" id="btnCopy">Copy URLs</button>
+      <button class="btn" id="btnExport">Export CSV</button>
+      <button class="btn" id="btnShare">Share view</button>
+      <button class="btn primary" id="btnRefresh">Refresh</button>
+    </div>
+  </div>
+
+  <div id="errBox"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <div class="panel-h">Quick stage filter <span class="right" id="showing"></span></div>
+    <div class="chips" id="stageChips"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">Filters <span class="right"><a href="#" id="clearAll">Clear all</a></span></div>
+    <div class="filters">
+      <div class="f wide"><label>Search property / address / broker / source</label><input id="q" type="search" placeholder="Type to search everything&hellip;" autocomplete="off"></div>
+      <div class="f"><label>State</label><select id="fState"></select></div>
+      <div class="f"><label>Source</label><select id="fSource"></select></div>
+      <div class="f"><label>Broker</label><select id="fBroker"></select></div>
+      <div class="f"><label>Priority</label><select id="fPriority"></select></div>
+      <div class="f"><label>Pricing</label><select id="fPricing"><option value="">All deals</option><option value="priced">Priced only</option><option value="unpriced">Unpriced only</option></select></div>
+      <div class="f"><label>Units range</label><div class="range"><input id="uMin" type="number" placeholder="Min"><span>&ndash;</span><input id="uMax" type="number" placeholder="Max"></div></div>
+      <div class="f"><label>Price range ($M)</label><div class="range"><input id="pMin" type="number" placeholder="Min"><span>&ndash;</span><input id="pMax" type="number" placeholder="Max"></div></div>
+      <div class="f"><label>Date added from</label><input id="dFrom" type="date"></div>
+      <div class="f"><label>Date added to</label><input id="dTo" type="date"></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-v="table">Deal table</div>
+    <div class="tab" data-v="folders">Folders</div>
+    <div class="tab" data-v="analytics">Analytics</div>
+  </div>
+
+  <div id="viewTable">
+    <div class="tbl-wrap">
+      <table><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+      <div id="moreWrap"></div>
+    </div>
+  </div>
+
+  <div id="viewFolders" style="display:none">
+    <div class="panel" style="border-radius:0 0 var(--r) var(--r);border-top:none">
+      <div class="panel-h">Group deals by
+        <span class="right">
+          <select id="groupBy" style="background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px">
+            <option value="source">Source / brokerage</option>
+            <option value="state">State</option>
+            <option value="broker">Broker</option>
+            <option value="stage">Pipeline stage</option>
+            <option value="priority">Priority</option>
+            <option value="month">Month added</option>
+          </select>
+        </span>
+      </div>
+      <div class="groups" id="groups"></div>
+    </div>
+  </div>
+
+  <div id="viewAnalytics" style="display:none">
+    <div class="panel" style="border-radius:0 0 var(--r) var(--r);border-top:none">
+      <div class="an-grid" id="analytics"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="dr-h"><h2 id="drTitle"></h2><div class="sub" id="drSub"></div><button class="dr-x" id="drX">&times;</button></div>
+  <div class="dr-b" id="drBody"></div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+var CONFIG = {
+  CSV_URL: "/data/deals.csv",
+  CSV_FALLBACK: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBeSbdlZv6mIqF_JGMAHbgk8kBXGgkMRO8BlgH0MhU58_Musmu5cuBLtBzcFc4QU44bniYDZvOZsxi/pub?gid=0&single=true&output=csv",
+  AUTO_REFRESH_MS: 300000,
+  PAGE_SIZE: 100
+};
+
+/* Header aliases. Add new spellings here as the sheet evolves.
+   Any column NOT listed here still appears automatically in the detail drawer,
+   so new sheet columns are never silently dropped. */
+var FIELDS = {
+  name:["Property Name","Property","Name","Deal Name"],
+  address:["Address","Property Address","Location"],
+  state:["State","ST"],
+  broker:["Broker","Broker Name","Contact"],
+  email:["Broker Email","Email","Contact Email"],
+  phone:["Broker Phone","Phone","Contact Phone"],
+  year:["Year","Year Built","Vintage"],
+  price:["Asking Price","Price","Ask","Asking"],
+  units:["# Units","Units","Unit Count","No. Units"],
+  ppu:["$$ per Unit","$ per Unit","Price per Unit","PPU"],
+  stage:["Pipeline Stage","Stage","Status"],
+  priority:["Priority","Prio"],
+  folder:["Folder Link","Folder","Drive Link","Files"],
+  url:["URL","Listing URL","Link","OM Link"],
+  added:["Date Added","Added","Created"],
+  changed:["Last Stage Change","Stage Changed","Last Change"],
+  source:["Source","Brokerage","Firm"]
+};
+
+var HEADERS=[], ROWS=[], MAP={}, EXTRA=[];
+var view="table", page=1, sortKey="added", sortDir=-1, stageFilter="", stateRead=false;
+
+/* ============ HELPERS ============ */
+function el(id){return document.getElementById(id);}
+
+function parseCSV(text){
+  var rows=[],row=[],cur="",q=false,i,c;
+  for(i=0;i<text.length;i++){
+    c=text.charAt(i);
+    if(q){
+      if(c==='"'){ if(text.charAt(i+1)==='"'){cur+='"';i++;} else {q=false;} }
+      else {cur+=c;}
+    }else{
+      if(c==='"'){q=true;}
+      else if(c===','){row.push(cur);cur="";}
+      else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur="";}
+      else if(c==='\r'){}
+      else {cur+=c;}
+    }
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+function num(v){var n=parseFloat(String(v==null?"":v).replace(/[^0-9.\-]/g,""));return isFinite(n)?n:null;}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function pDate(v){
+  var s=String(v==null?"":v).trim(); if(!s){return null;}
+  var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){return new Date(+m[3],+m[1]-1,+m[2]);}
+  var d=new Date(s); return isNaN(d.getTime())?null:d;
+}
+function money(n){return n==null?"":"$"+Math.round(n).toLocaleString("en-US");}
+function compact(n){
+  if(n==null){return "\u2014";}
+  if(n>=1e9){return "$"+(n/1e9).toFixed(2)+"B";}
+  if(n>=1e6){return "$"+(n/1e6).toFixed(1)+"M";}
+  return "$"+Math.round(n).toLocaleString("en-US");
+}
+function fmtDate(d){return d?((d.getMonth()+1)+"/"+d.getDate()+"/"+d.getFullYear()):"";}
+function isoDate(d){
+  if(!d){return "";}
+  var m=String(d.getMonth()+1), day=String(d.getDate());
+  return d.getFullYear()+"-"+(m.length<2?"0"+m:m)+"-"+(day.length<2?"0"+day:day);
+}
+function stageClass(s){
+  var t=String(s).toLowerCase();
+  if(t.indexOf("new")>-1){return "st-new";}
+  if(t.indexOf("process")>-1){return "st-proc";}
+  if(t.indexOf("uw")>-1||t.indexOf("underwrit")>-1){return "st-uw";}
+  if(t.indexOf("offer")>-1){return "st-offer";}
+  if(t.indexOf("loi")>-1){return "st-loi";}
+  if(t.indexOf("won")>-1){return "st-won";}
+  if(t.indexOf("lost")>-1){return "st-lost";}
+  return "st-none";
+}
+function prioClass(p){
+  var t=String(p).toLowerCase();
+  if(t.indexOf("high")>-1||t.indexOf("hot")>-1){return "pr-high";}
+  if(t.indexOf("med")>-1){return "pr-med";}
+  if(t.indexOf("new")>-1){return "pr-new";}
+  return "pr-low";
+}
+function toast(msg){
+  var t=el("toast"); t.textContent=msg; t.classList.add("on");
+  setTimeout(function(){t.classList.remove("on");},1900);
+}
+function mapsUrl(a){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(a);}
+
+/* ============ LOAD ============ */
+function resolveHeaders(h){
+  var used={}, key, list, j, k, idx, i;
+  MAP={};
+  for(key in FIELDS){
+    list=FIELDS[key];
+    for(j=0;j<list.length;j++){
+      idx=-1;
+      for(k=0;k<h.length;k++){ if(h[k].trim().toLowerCase()===list[j].toLowerCase()){idx=k;break;} }
+      if(idx>-1){ MAP[key]=idx; used[idx]=1; break; }
+    }
+  }
+  EXTRA=[];
+  for(i=0;i<h.length;i++){ if(!used[i] && h[i].trim()){ EXTRA.push({h:h[i],i:i}); } }
+}
+function gv(raw,k){return MAP[k]==null?"":String(raw[MAP[k]]==null?"":raw[MAP[k]]).trim();}
+
+function load(spinner){
+  var dot=el("dot"), st=el("statusTxt");
+  dot.className="dot stale"; st.textContent="Fetching\u2026";
+  if(spinner){ el("tbody").innerHTML='<tr><td colspan="12"><div class="empty"><div class="spin"></div>Loading pipeline\u2026</div></td></tr>'; }
+
+  var urls=[CONFIG.CSV_URL,CONFIG.CSV_FALLBACK], idx=0, lastErr="";
+
+  function fail(msg){
+    dot.className="dot err"; st.textContent="Load failed";
+    el("errBox").innerHTML='<div class="err-box"><b>Could not load the sheet.</b><br>'+esc(msg)+
+      '<br><br>Check that the sheet is still published to the web (File &rarr; Share &rarr; Publish to web), or that the <code>/data/deals.csv</code> redirect exists.</div>';
+  }
+  function ok(text){
+    el("errBox").innerHTML="";
+    var raw=parseCSV(text), i, r, o;
+    if(!raw.length){ fail("Empty file"); return; }
+    HEADERS=raw[0].map(function(x){return x.trim();});
+    resolveHeaders(HEADERS);
+    ROWS=[];
+    for(i=1;i<raw.length;i++){
+      r=raw[i];
+      if(r.length<2||!r.join("").trim()){continue;}
+      o={raw:r};
+      o.name=gv(r,"name"); o.address=gv(r,"address"); o.state=gv(r,"state");
+      o.broker=gv(r,"broker"); o.email=gv(r,"email"); o.phone=gv(r,"phone");
+      o.year=gv(r,"year"); o.stage=gv(r,"stage")||"\u2014"; o.priority=gv(r,"priority")||"\u2014";
+      o.folder=gv(r,"folder"); o.url=gv(r,"url"); o.source=gv(r,"source")||"\u2014";
+      o.price=num(gv(r,"price")); o.units=num(gv(r,"units")); o.ppu=num(gv(r,"ppu"));
+      if(o.ppu==null&&o.price!=null&&o.units){ o.ppu=o.price/o.units; }
+      o.added=pDate(gv(r,"added")); o.changed=pDate(gv(r,"changed"));
+      o._s=[o.name,o.address,o.state,o.broker,o.email,o.phone,o.source,o.stage,o.priority].join(" ").toLowerCase();
+      o._idx=ROWS.length;
+      ROWS.push(o);
+    }
+    dot.className="dot";
+    st.textContent=ROWS.length.toLocaleString()+" deals \u00b7 updated "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+    buildSelects();
+    if(!stateRead){ readState(); stateRead=true; }
+    renderAll();
+  }
+  function attempt(){
+    if(idx>=urls.length){ fail(lastErr); return; }
+    var u=urls[idx++];
+    fetch(u+(u.indexOf("?")>-1?"&":"?")+"_cb="+Date.now(),{cache:"no-store"})
+      .then(function(res){ if(!res.ok){throw new Error("HTTP "+res.status);} return res.text(); })
+      .then(function(t){ if(!t||t.trim().charAt(0)==="<"){throw new Error("Response was not CSV");} ok(t); })
+      .catch(function(e){ lastErr=e.message; attempt(); });
+  }
+  attempt();
+}
+
+/* ============ SELECTS ============ */
+function uniqueVals(key){
+  var m={},i,v,out=[];
+  for(i=0;i<ROWS.length;i++){ v=ROWS[i][key]; if(v&&v!=="\u2014"){ m[v]=(m[v]||0)+1; } }
+  out=Object.keys(m).sort();
+  return out.map(function(k){return {v:k,n:m[k]};});
+}
+function fillSelect(id,label,key){
+  var s=el(id), cur=s.value, vals=uniqueVals(key), i;
+  var html='<option value="">'+label+' ('+vals.length+')</option>';
+  for(i=0;i<vals.length;i++){ html+='<option value="'+esc(vals[i].v)+'">'+esc(vals[i].v)+' ('+vals[i].n+')</option>'; }
+  s.innerHTML=html;
+  if(cur){ s.value=cur; }
+}
+function buildSelects(){
+  fillSelect("fState","All states","state");
+  fillSelect("fSource","All sources","source");
+  fillSelect("fBroker","All brokers","broker");
+  fillSelect("fPriority","All priorities","priority");
+}
+
+/* ============ FILTER + SORT ============ */
+function filtered(){
+  var q=el("q").value.trim().toLowerCase();
+  var fs=el("fState").value, fso=el("fSource").value, fb=el("fBroker").value;
+  var fp=el("fPriority").value, fpr=el("fPricing").value;
+  var uMin=num(el("uMin").value), uMax=num(el("uMax").value);
+  var pMin=num(el("pMin").value), pMax=num(el("pMax").value);
+  var dFrom=el("dFrom").value?new Date(el("dFrom").value+"T00:00:00"):null;
+  var dTo=el("dTo").value?new Date(el("dTo").value+"T23:59:59"):null;
+  var out=[],i,r;
+  for(i=0;i<ROWS.length;i++){
+    r=ROWS[i];
+    if(q&&r._s.indexOf(q)<0){continue;}
+    if(stageFilter&&r.stage!==stageFilter){continue;}
+    if(fs&&r.state!==fs){continue;}
+    if(fso&&r.source!==fso){continue;}
+    if(fb&&r.broker!==fb){continue;}
+    if(fp&&r.priority!==fp){continue;}
+    if(fpr==="priced"&&r.price==null){continue;}
+    if(fpr==="unpriced"&&r.price!=null){continue;}
+    if(uMin!=null&&(r.units==null||r.units<uMin)){continue;}
+    if(uMax!=null&&(r.units==null||r.units>uMax)){continue;}
+    if(pMin!=null&&(r.price==null||r.price<pMin*1e6)){continue;}
+    if(pMax!=null&&(r.price==null||r.price>pMax*1e6)){continue;}
+    if(dFrom&&(!r.added||r.added<dFrom)){continue;}
+    if(dTo&&(!r.added||r.added>dTo)){continue;}
+    out.push(r);
+  }
+  return out;
+}
+function sortRows(rows){
+  var k=sortKey, d=sortDir;
+  return rows.slice().sort(function(a,b){
+    var x=a[k], y=b[k], xe, ye;
+    if(x instanceof Date){x=x.getTime();}
+    if(y instanceof Date){y=y.getTime();}
+    xe=(x==null||x===""||x==="\u2014");
+    ye=(y==null||y===""||y==="\u2014");
+    if(xe&&ye){return 0;}
+    if(xe){return 1;}
+    if(ye){return -1;}
+    if(typeof x==="number"&&typeof y==="number"){return (x-y)*d;}
+    return String(x).localeCompare(String(y))*d;
+  });
+}
+
+/* ============ RENDER ============ */
+var COLS=[
+  {k:"name",t:"Property"},
+  {k:"address",t:"Address"},
+  {k:"state",t:"ST"},
+  {k:"year",t:"Year"},
+  {k:"units",t:"Units",n:true},
+  {k:"price",t:"Asking Price",n:true},
+  {k:"ppu",t:"$ / Unit",n:true},
+  {k:"broker",t:"Broker"},
+  {k:"stage",t:"Stage"},
+  {k:"priority",t:"Priority"},
+  {k:"source",t:"Source"},
+  {k:"added",t:"Added",n:true}
+];
+function renderHead(){
+  var h="<tr>",i,c,on;
+  for(i=0;i<COLS.length;i++){
+    c=COLS[i]; on=(sortKey===c.k);
+    h+='<th data-k="'+c.k+'" class="'+(on?"sorted ":"")+(c.n?"num":"")+'">'+esc(c.t)+
+       '<span class="ar">'+(on?(sortDir>0?"\u25b2":"\u25bc"):"\u25c6")+'</span></th>';
+  }
+  el("thead").innerHTML=h+"</tr>";
+}
+function renderTable(rows){
+  renderHead();
+  var tb=el("tbody");
+  if(!rows.length){
+    tb.innerHTML='<tr><td colspan="12"><div class="empty">No deals match these filters.</div></td></tr>';
+    el("moreWrap").innerHTML=""; return;
+  }
+  var lim=Math.min(rows.length,page*CONFIG.PAGE_SIZE), h="", i, r;
+  for(i=0;i<lim;i++){
+    r=rows[i];
+    h+='<tr data-i="'+r._idx+'">'+
+      '<td class="prop">'+esc(r.name||"\u2014")+'</td>'+
+      '<td class="addr">'+esc(r.address)+(r.address?'<a class="ilink" target="_blank" rel="noopener" href="'+esc(mapsUrl(r.address))+'" title="Open in Maps">&#128205;</a>':"")+'</td>'+
+      '<td>'+esc(r.state)+'</td>'+
+      '<td>'+esc(r.year||"\u2014")+'</td>'+
+      '<td class="num">'+(r.units!=null?r.units.toLocaleString():"\u2014")+'</td>'+
+      '<td class="num">'+(r.price!=null?money(r.price):'<span class="unpriced">Unpriced</span>')+'</td>'+
+      '<td class="num">'+(r.ppu!=null?money(r.ppu):"\u2014")+'</td>'+
+      '<td>'+esc(r.broker||"\u2014")+'</td>'+
+      '<td><span class="pill '+stageClass(r.stage)+'">'+esc(r.stage)+'</span></td>'+
+      '<td><span class="pill '+prioClass(r.priority)+'">'+esc(r.priority)+'</span></td>'+
+      '<td>'+esc(r.source)+'</td>'+
+      '<td class="num">'+fmtDate(r.added)+'</td>'+
+      '</tr>';
+  }
+  tb.innerHTML=h;
+  el("moreWrap").innerHTML = lim<rows.length ?
+    '<div class="more"><button class="btn" id="btnMore">Show more ('+(rows.length-lim).toLocaleString()+' remaining)</button></div>' : "";
+  var bm=el("btnMore");
+  if(bm){ bm.onclick=function(){ page++; renderAll(); }; }
+}
+function renderKPIs(rows){
+  var totalUnits=0,val=0,pricedUnits=0,priced=0,unpriced=0,recent=0,i,r;
+  var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-30);
+  for(i=0;i<rows.length;i++){
+    r=rows[i];
+    if(r.units){ totalUnits+=r.units; }
+    if(r.price!=null){ priced++; val+=r.price; if(r.units){pricedUnits+=r.units;} } else { unpriced++; }
+    if(r.added&&r.added>=cutoff){ recent++; }
+  }
+  var avg = pricedUnits ? val/pricedUnits : null;
+  var k=[
+    ["Total deals",rows.length.toLocaleString(),"Filtered deal count"],
+    ["Total units",totalUnits.toLocaleString(),"Multifamily portfolio"],
+    ["Pipeline value",compact(val),"Sum of asking prices"],
+    ["Avg $/unit",avg!=null?money(avg):"\u2014","Weighted, priced deals only"],
+    ["Priced ratio",priced.toLocaleString()+" / "+unpriced.toLocaleString(),"Priced vs unpriced"],
+    ["Last 30 days","+"+recent.toLocaleString(),"Newly added deals"]
+  ];
+  var h="";
+  for(i=0;i<k.length;i++){
+    h+='<div class="kpi"><div class="lbl">'+k[i][0]+'</div><div class="val">'+k[i][1]+'</div><div class="note">'+k[i][2]+'</div></div>';
+  }
+  el("kpis").innerHTML=h;
+}
+function renderChips(){
+  var counts={},order=[],i,s;
+  for(i=0;i<ROWS.length;i++){
+    s=ROWS[i].stage;
+    if(!(s in counts)){ counts[s]=0; order.push(s); }
+    counts[s]++;
+  }
+  var h='<div class="chip '+(stageFilter===""?"on":"")+'" data-s="">All stages <span class="n">'+ROWS.length.toLocaleString()+'</span></div>';
+  for(i=0;i<order.length;i++){
+    h+='<div class="chip '+(stageFilter===order[i]?"on":"")+'" data-s="'+esc(order[i])+'">'+esc(order[i])+' <span class="n">'+counts[order[i]].toLocaleString()+'</span></div>';
+  }
+  el("stageChips").innerHTML=h;
+}
+function groupKey(r,mode){
+  if(mode==="month"){ return r.added ? r.added.toLocaleDateString("en-US",{month:"short",year:"numeric"}) : "No date"; }
+  return r[mode]||"\u2014";
+}
+function renderGroups(rows){
+  var mode=el("groupBy").value, m={}, order=[], i, j, k, g, u, v, h="";
+  for(i=0;i<rows.length;i++){
+    k=groupKey(rows[i],mode);
+    if(!m[k]){ m[k]=[]; order.push(k); }
+    m[k].push(rows[i]);
+  }
+  order.sort(function(a,b){return m[b].length-m[a].length;});
+  for(i=0;i<order.length;i++){
+    g=m[order[i]]; u=0; v=0;
+    for(j=0;j<g.length;j++){ if(g[j].units){u+=g[j].units;} if(g[j].price!=null){v+=g[j].price;} }
+    h+='<div class="grp"><div class="grp-h"><div class="grp-ico">&#128193;</div><div><div class="grp-t">'+esc(order[i])+
+       '</div><div class="grp-s">'+u.toLocaleString()+' units \u00b7 '+compact(v)+'</div></div><div class="grp-n">'+g.length+'</div></div><div class="grp-b">';
+    for(j=0;j<g.length&&j<200;j++){
+      h+='<div class="grp-i" data-i="'+g[j]._idx+'"><span class="gi-n">'+esc(g[j].name||g[j].address||"\u2014")+
+         '</span><span class="gi-v">'+(g[j].units!=null?g[j].units+"u":"")+" "+(g[j].price!=null?compact(g[j].price):"")+'</span></div>';
+    }
+    if(g.length>200){ h+='<div class="grp-i"><span class="gi-n muted">+'+(g.length-200)+' more</span></div>'; }
+    h+='</div></div>';
+  }
+  el("groups").innerHTML = h || '<div class="empty">No deals match these filters.</div>';
+}
+function barPanel(title,rows,key,limit){
+  var m={},order=[],i,k,max,pct;
+  for(i=0;i<rows.length;i++){
+    k=rows[i][key]||"\u2014";
+    if(!(k in m)){ m[k]=0; order.push(k); }
+    m[k]++;
+  }
+  order.sort(function(a,b){return m[b]-m[a];});
+  if(limit){ order=order.slice(0,limit); }
+  max=order.length?m[order[0]]:1;
+  var h='<div><div class="panel-h">'+title+'</div><div class="bars">';
+  for(i=0;i<order.length;i++){
+    pct=Math.round(m[order[i]]/max*100);
+    h+='<div class="bar-row"><div class="bar-lbl" title="'+esc(order[i])+'">'+esc(order[i])+
+       '</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><div class="bar-val">'+m[order[i]].toLocaleString()+'</div></div>';
+  }
+  return h+'</div></div>';
+}
+function renderAnalytics(rows){
+  el("analytics").innerHTML =
+    barPanel("Deals by source",rows,"source",0)+
+    barPanel("Deals by state (top 15)",rows,"state",15)+
+    barPanel("Deals by pipeline stage",rows,"stage",0)+
+    barPanel("Top brokers (top 15)",rows,"broker",15);
+}
+function renderAll(){
+  var rows=sortRows(filtered());
+  window.__rows=rows;
+  renderKPIs(rows);
+  renderChips();
+  el("showing").textContent="Showing "+rows.length.toLocaleString()+" of "+ROWS.length.toLocaleString()+" deals";
+  if(view==="table"){ renderTable(rows); }
+  else if(view==="folders"){ renderGroups(rows); }
+  else { renderAnalytics(rows); }
+  writeState();
+}
+
+/* ============ DETAIL DRAWER ============ */
+function openDrawer(i){
+  var r=ROWS[i]; if(!r){return;}
+  el("drTitle").textContent=r.name||"(no property name)";
+  el("drSub").textContent=[r.address,r.state].filter(Boolean).join(" \u00b7 ");
+  var body="", j, v;
+  function add(k,val){
+    if(val==null||val===""){return;}
+    body+='<div class="dr-row"><div class="k">'+esc(k)+'</div><div>'+val+'</div></div>';
+  }
+  add("Stage",'<span class="pill '+stageClass(r.stage)+'">'+esc(r.stage)+'</span>');
+  add("Priority",'<span class="pill '+prioClass(r.priority)+'">'+esc(r.priority)+'</span>');
+  add("Source",esc(r.source));
+  add("Units",r.units!=null?r.units.toLocaleString():"");
+  add("Asking price",r.price!=null?money(r.price):'<span class="unpriced">Unpriced</span>');
+  add("$ per unit",r.ppu!=null?money(r.ppu):"");
+  add("Year built",esc(r.year));
+  add("Broker",esc(r.broker));
+  add("Email",r.email?'<a href="mailto:'+esc(r.email)+'">'+esc(r.email)+'</a>':"");
+  add("Phone",r.phone?'<a href="tel:'+esc(r.phone.replace(/[^0-9+]/g,""))+'">'+esc(r.phone)+'</a>':"");
+  add("Date added",fmtDate(r.added));
+  add("Last stage change",fmtDate(r.changed));
+  for(j=0;j<EXTRA.length;j++){
+    v=String(r.raw[EXTRA[j].i]==null?"":r.raw[EXTRA[j].i]).trim();
+    if(v){ add(EXTRA[j].h,esc(v)); }
+  }
+  var acts="";
+  if(r.url){ acts+='<a class="btn" target="_blank" rel="noopener" href="'+esc(r.url)+'">Open listing</a>'; }
+  if(r.folder){ acts+='<a class="btn" target="_blank" rel="noopener" href="'+esc(r.folder)+'">Open folder</a>'; }
+  if(r.address){ acts+='<a class="btn" target="_blank" rel="noopener" href="'+esc(mapsUrl(r.address))+'">Map</a>'; }
+  if(r.email){ acts+='<a class="btn primary" href="mailto:'+esc(r.email)+'?subject='+encodeURIComponent(r.name||"Property inquiry")+'">Email broker</a>'; }
+  el("drBody").innerHTML=body+'<div class="dr-acts">'+acts+'</div>';
+  el("drawer").classList.add("on");
+  el("scrim").classList.add("on");
+}
+function closeDrawer(){
+  el("drawer").classList.remove("on");
+  el("scrim").classList.remove("on");
+}
+
+/* ============ VIEW + SHAREABLE URL STATE ============ */
+function setView(v,silent){
+  view=v; page=1;
+  var tabs=document.querySelectorAll("#tabs .tab"), i;
+  for(i=0;i<tabs.length;i++){
+    tabs[i].className="tab"+(tabs[i].getAttribute("data-v")===v?" on":"");
+  }
+  el("viewTable").style.display = v==="table" ? "" : "none";
+  el("viewFolders").style.display = v==="folders" ? "" : "none";
+  el("viewAnalytics").style.display = v==="analytics" ? "" : "none";
+  if(!silent){ renderAll(); }
+}
+function writeState(){
+  var p=new URLSearchParams();
+  function a(k,v){ if(v){ p.set(k,v); } }
+  a("q",el("q").value); a("stage",stageFilter);
+  a("state",el("fState").value); a("source",el("fSource").value);
+  a("broker",el("fBroker").value); a("prio",el("fPriority").value);
+  a("pricing",el("fPricing").value);
+  a("umin",el("uMin").value); a("umax",el("uMax").value);
+  a("pmin",el("pMin").value); a("pmax",el("pMax").value);
+  a("from",el("dFrom").value); a("to",el("dTo").value);
+  a("sort",sortKey); a("dir",String(sortDir));
+  a("view",view); a("group",el("groupBy").value);
+  var s=p.toString();
+  history.replaceState(null,"",location.pathname+(s?"#"+s:""));
+}
+function readState(){
+  var p=new URLSearchParams(location.hash.replace(/^#/,""));
+  if(!p.toString()){return;}
+  function s(id,k){ var v=p.get(k); if(v!=null){ el(id).value=v; } }
+  s("q","q"); s("fState","state"); s("fSource","source"); s("fBroker","broker");
+  s("fPriority","prio"); s("fPricing","pricing");
+  s("uMin","umin"); s("uMax","umax"); s("pMin","pmin"); s("pMax","pmax");
+  s("dFrom","from"); s("dTo","to"); s("groupBy","group");
+  stageFilter=p.get("stage")||"";
+  if(p.get("sort")){ sortKey=p.get("sort"); }
+  if(p.get("dir")){ sortDir=parseInt(p.get("dir"),10)||-1; }
+  if(p.get("view")){ setView(p.get("view"),true); }
+}
+
+/* ============ EXPORT / COPY / SHARE ============ */
+function csvEscape(v){
+  v=String(v==null?"":v);
+  return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+}
+function exportCSV(){
+  var rows=window.__rows||[], out=[HEADERS.map(csvEscape).join(",")], i;
+  for(i=0;i<rows.length;i++){ out.push(rows[i].raw.map(csvEscape).join(",")); }
+  var blob=new Blob([out.join("\r\n")],{type:"text/csv;charset=utf-8;"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="pipeline-"+isoDate(new Date())+".csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  toast("Exported "+rows.length.toLocaleString()+" deals");
+}
+function copyURLs(){
+  var rows=window.__rows||[], u=[], i;
+  for(i=0;i<rows.length;i++){ if(rows[i].url){ u.push(rows[i].url); } }
+  navigator.clipboard.writeText(u.join("\n")).then(function(){ toast("Copied "+u.length.toLocaleString()+" URLs"); });
+}
+function shareView(){
+  navigator.clipboard.writeText(location.href).then(function(){ toast("View link copied"); });
+}
+
+/* ============ EVENTS ============ */
+function bind(){
+  var ids=["q","fState","fSource","fBroker","fPriority","fPricing","uMin","uMax","pMin","pMax","dFrom","dTo"], i;
+  function onChange(){ page=1; renderAll(); }
+  for(i=0;i<ids.length;i++){
+    el(ids[i]).addEventListener("input",onChange);
+    el(ids[i]).addEventListener("change",onChange);
+  }
+  el("groupBy").addEventListener("change",renderAll);
+  el("stageChips").addEventListener("click",function(e){
+    var c=e.target.closest(".chip"); if(!c){return;}
+    stageFilter=c.getAttribute("data-s")||""; page=1; renderAll();
+  });
+  el("thead").addEventListener("click",function(e){
+    var th=e.target.closest("th"); if(!th){return;}
+    var k=th.getAttribute("data-k"); if(!k){return;}
+    if(sortKey===k){ sortDir=-sortDir; } else { sortKey=k; sortDir=1; }
+    renderAll();
+  });
+  el("tbody").addEventListener("click",function(e){
+    if(e.target.closest("a")){return;}
+    var tr=e.target.closest("tr"); if(!tr){return;}
+    var i2=tr.getAttribute("data-i");
+    if(i2!=null){ openDrawer(parseInt(i2,10)); }
+  });
+  el("groups").addEventListener("click",function(e){
+    var it=e.target.closest(".grp-i");
+    if(it&&it.getAttribute("data-i")!=null){ openDrawer(parseInt(it.getAttribute("data-i"),10)); return; }
+    var hh=e.target.closest(".grp-h");
+    if(hh){ hh.parentNode.classList.toggle("open"); }
+  });
+  el("tabs").addEventListener("click",function(e){
+    var t=e.target.closest(".tab"); if(!t){return;}
+    setView(t.getAttribute("data-v"));
+  });
+  el("clearAll").addEventListener("click",function(e){
+    e.preventDefault();
+    var ids2=["q","uMin","uMax","pMin","pMax","dFrom","dTo","fState","fSource","fBroker","fPriority","fPricing"], j;
+    for(j=0;j<ids2.length;j++){ el(ids2[j]).value=""; }
+    stageFilter=""; page=1; renderAll();
+  });
+  el("btnRefresh").addEventListener("click",function(){ load(false); });
+  el("btnExport").addEventListener("click",exportCSV);
+  el("btnCopy").addEventListener("click",copyURLs);
+  el("btnShare").addEventListener("click",shareView);
+  el("drX").addEventListener("click",closeDrawer);
+  el("scrim").addEventListener("click",closeDrawer);
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape"){ closeDrawer(); } });
+}
+
+/* ============ INIT ============ */
+bind();
+load(true);
+setInterval(function(){ load(false); }, CONFIG.AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
 

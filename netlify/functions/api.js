@@ -24,7 +24,7 @@ var SCRIPT_URL = process.env.APPS_SCRIPT_URL ||
 var SCRIPT_TOKEN = process.env.APPS_SCRIPT_TOKEN || '';
 var SHEET_NAME = process.env.SHEET_NAME || 'Master Sheet';
 
-var ALLOWED_ACTIONS = ['update', 'append'];
+var ALLOWED_ACTIONS = ['update', 'updateRow', 'append'];
 
 /* Small in-memory cache. Netlify keeps a warm container alive between requests,
    so this saves re-fetching the whole sheet on every page load. */

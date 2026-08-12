@@ -496,6 +496,12 @@ function saveCell(row,field,value,selEl){
     if(res&&res.ok){
       selEl.className="cell-sel "+(field==="stage"?stageClass(value):prioClass(value));
       toast("Saved \u2014 "+colName(field)+" set to "+value);
+      if(field==="stage" && colName("changed")){
+        var _d=new Date();
+        var _s=(_d.getMonth()+1)+"/"+_d.getDate()+"/"+_d.getFullYear();
+        row.changed=_s;
+        postWrite({action:"update",row:row._sheetRow,column:colName("changed"),value:_s,match:{name:row.name,url:row.url}});
+      }
       renderKPIs(window.__rows||[]); renderChips();
     }else{
       row[field]=prev; selEl.value=prev;

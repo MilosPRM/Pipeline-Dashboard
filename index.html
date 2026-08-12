@@ -835,7 +835,7 @@ function openDrawer(i){
   }
   el("drBody").innerHTML=body+'<div class="dr-acts">'+acts+'</div>';
   var _cm=el("drCopyMail");
-  if(_cm){ _cm.addEventListener("click",function(){ var v=_cm.getAttribute("data-m"); navigator.clipboard.writeText(v).then(function(){ toast("Broker email copied"); },function(){ toast("Copy failed"); }); }); }
+  if(_cm){ _cm.addEventListener("click",function(){ var v=_cm.getAttribute("data-m"); copyText(v).then(function(){ toast("Broker email copied"); },function(){ toast("Copy failed"); }); }); }
   el("drawer").classList.add("on");
   el("scrim").classList.add("on");
 }
@@ -995,13 +995,28 @@ function exportCSV(){
   URL.revokeObjectURL(a.href);
   toast("Exported "+rows.length.toLocaleString()+" deals");
 }
+function legacyCopy(t){
+  return new Promise(function(res,rej){
+    var ta=document.createElement("textarea"); ta.value=t; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.top="-1000px"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,t.length);
+    var ok=false; try{ ok=document.execCommand("copy"); }catch(e){ ok=false; }
+    document.body.removeChild(ta);
+    if(ok){ res(); } else { rej(new Error("copy blocked")); }
+  });
+}
+function copyText(t){
+  if(navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(t).catch(function(){ return legacyCopy(t); });
+  }
+  return legacyCopy(t);
+}
 function copyURLs(){
   var rows=window.__rows||[], u=[], i;
   for(i=0;i<rows.length;i++){ if(rows[i].url){ u.push(rows[i].url); } }
-  navigator.clipboard.writeText(u.join("\n")).then(function(){ toast("Copied "+u.length.toLocaleString()+" URLs"); });
+  copyText(u.join("\n")).then(function(){ toast("Copied "+u.length.toLocaleString()+" URLs"); });
 }
 function shareView(){
-  navigator.clipboard.writeText(location.href).then(function(){ toast("View link copied"); });
+  copyText(location.href).then(function(){ toast("View link copied"); });
 }
 
 /* ==================== EVENTS ==================== */

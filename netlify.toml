@@ -1,0 +1,34 @@
+# Netlify configuration - Pipeline CRM
+# The site is a static front end plus serverless functions. No build step.
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Clean API routes. /api/deals -> the "api" function, which does its own routing.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# The publish directory is the repo root, so block the function source from being
+# downloaded as a static file.
+[[redirects]]
+  from = "/netlify/*"
+  to = "/index.html"
+  status = 404
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "same-origin"
+
+# API responses must never be cached by the CDN or the browser.
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
+

@@ -18,6 +18,7 @@
   from = "/netlify/*"
   to = "/index.html"
   status = 404
+  force = true
 
 [[headers]]
   for = "/*"

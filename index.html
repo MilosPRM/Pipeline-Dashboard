@@ -157,6 +157,53 @@ tbody tr:hover{background:#f8fafc;cursor:pointer}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#111827;color:#fff;padding:11px 20px;border-radius:9px;font-size:13px;z-index:70;transition:.25s;opacity:0;box-shadow:0 10px 24px rgba(16,24,40,.22)}
 .toast.on{transform:translateX(-50%);opacity:1}
 @media(max-width:760px){.wrap{padding:14px}.f.wide{grid-column:span 1}.bar-row{grid-template-columns:100px 1fr 80px}.m-b{grid-template-columns:1fr}.fld.full{grid-column:span 1}}
+
+/* ---- responsive breakpoints (added) ---- */
+.tbl-wrap{-webkit-overflow-scrolling:touch}
+@media(max-width:1400px){
+.wrap{padding:18px 16px 70px}
+table{font-size:12.5px}
+th,td{padding:9px 10px}
+}
+@media(max-width:1200px){
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{padding:13px}
+.kpi .val{font-size:24px}
+th:nth-child(4),td:nth-child(4),th:nth-child(7),td:nth-child(7){display:none}
+}
+@media(max-width:1000px){
+th:nth-child(11),td:nth-child(11),th:nth-child(12),td:nth-child(12){display:none}
+.filters{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+}
+@media(max-width:860px){
+th:nth-child(2),td:nth-child(2),th:nth-child(3),td:nth-child(3),th:nth-child(8),td:nth-child(8){display:none}
+.kpis{grid-template-columns:repeat(2,1fr)}
+.kpi .val{font-size:22px}
+.top{gap:10px}
+.top-actions{margin-left:0;width:100%}
+.top-actions .btn{flex:1 1 auto;text-align:center;padding:8px 10px}
+.tab{padding:9px 11px;font-size:13px}
+.an-grid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+.wrap{padding:12px 10px 60px}
+h1{font-size:17px}
+.sub{display:none}
+.kpis{grid-template-columns:1fr 1fr;gap:8px}
+.kpi{padding:11px}
+.kpi .val{font-size:20px}
+.kpi .note{display:none}
+.filters{grid-template-columns:1fr}
+table{font-size:12px}
+th,td{padding:8px 7px}
+.prop{max-width:150px}
+.modal{width:96vw;max-height:92vh}
+.m-h{padding:14px 16px}
+.m-b{padding:14px 16px}
+.m-f{padding:12px 16px;flex-wrap:wrap}
+.m-msg{width:100%;order:3;margin:6px 0 0}
+.drawer{width:100vw}
+}
 </style>
 </head>
 <body>

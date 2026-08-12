@@ -826,8 +826,16 @@ function openDrawer(i){
   if(r.url){ acts+='<a class="btn" target="_blank" rel="noopener" href="'+esc(r.url)+'">Open listing</a>'; }
   if(r.folder){ acts+='<a class="btn" target="_blank" rel="noopener" href="'+esc(r.folder)+'">Open folder</a>'; }
   if(r.address){ acts+='<a class="btn" target="_blank" rel="noopener" href="'+esc(mapsUrl(r.address))+'">Map</a>'; }
-  if(r.email){ acts+='<a class="btn" href="mailto:'+esc(r.email)+'?subject='+encodeURIComponent(r.name||"Property inquiry")+'">Email broker</a>'; }
+  if(r.email){
+    var _su=encodeURIComponent((r.name||"Property inquiry")+" - inquiry");
+    var _bd=encodeURIComponent("Hi"+(r.broker?" "+String(r.broker).split(" ")[0]:"")+",\n\nI am reaching out regarding "+(r.name||"the property")+(r.address?" ("+r.address+")":"")+".\n\nCould you please send over the offering memorandum, rent roll and T-12?\n\nThank you,\n");
+    acts+='<a class="btn" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;tf=1&amp;to='+encodeURIComponent(r.email)+'&amp;su='+_su+'&amp;body='+_bd+'">Email broker</a>';
+    acts+='<a class="btn" href="mailto:'+esc(r.email)+'?subject='+_su+'&amp;body='+_bd+'">Mail app</a>';
+    acts+='<button class="btn" type="button" id="drCopyMail" data-m="'+esc(r.email)+'">Copy email</button>';
+  }
   el("drBody").innerHTML=body+'<div class="dr-acts">'+acts+'</div>';
+  var _cm=el("drCopyMail");
+  if(_cm){ _cm.addEventListener("click",function(){ var v=_cm.getAttribute("data-m"); navigator.clipboard.writeText(v).then(function(){ toast("Broker email copied"); },function(){ toast("Copy failed"); }); }); }
   el("drawer").classList.add("on");
   el("scrim").classList.add("on");
 }

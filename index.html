@@ -306,14 +306,9 @@ html,body{height:100%;overflow:hidden}
 <script>
 /* ==================== CONFIG ==================== */
 var CONFIG = {
-  /* Read: published Google Sheet CSV, proxied same-origin via _redirects */
-  CSV_URL: "/data/deals.csv",
-  CSV_FALLBACK: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBeSbdlZv6mIqF_JGMAHbgk8kBXGgkMRO8BlgH0MhU58_Musmu5cuBLtBzcFc4QU44bniYDZvOZsxi/pub?gid=0&single=true&output=csv",
-
-  /* Write: paste your deployed Apps Script Web App URL here to enable editing.
-     While this is empty the dashboard stays strictly read-only. */
-  WRITE_ENDPOINT: "https://script.google.com/macros/s/AKfycbyxjW7255V3MKoDSOPkj826lqNhmimO69-9NhPJT1SxmbK3WEIxRUd7Hz4IjZiVYorR/exec",
-  WRITE_TOKEN: "CHANGE-ME-to-a-long-random-string",
+  /* Every read and write goes through the same-origin API. No endpoint URLs
+     and no credentials live in this file — see ARCHITECTURE.md. */
+  API_BASE: "/api",
 
   SHEET_NAME: "Master Sheet",
   HEADER_ROWS: 1,
@@ -352,7 +347,8 @@ var modalMode="add", modalRow=null;
 
 /* ==================== HELPERS ==================== */
 function el(id){return document.getElementById(id);}
-function canWrite(){ return !!CONFIG.WRITE_ENDPOINT; }
+var WRITES_ENABLED = false;
+function canWrite(){ return WRITES_ENABLED; }
 
 function parseCSV(text){
   var rows=[],row=[],cur="",q=false,i,c;
@@ -456,7 +452,7 @@ function colName(k){ return MAP[k]==null?"":HEADERS[MAP[k]]; }
 
 function renderBanner(){
   el("banner").innerHTML = canWrite() ? "" :
-    '<div class="banner"><b>Read-only mode.</b> Stage, priority and new deals are shown but cannot be saved yet \u2014 the published CSV feed is one-way. Deploy the Apps Script endpoint and paste its URL into <code>CONFIG.WRITE_ENDPOINT</code> to turn on editing.</div>';
+    '<div class="banner"><b>Read-only mode.</b> Stage, priority and new deals are shown but cannot be saved yet \u2014 the API reports writes are disabled. Set <code>APPS_SCRIPT_TOKEN</code> in Netlify and redeploy to turn on editing.</div>';
 }
 
 function load(spinner){
@@ -464,34 +460,51 @@ function load(spinner){
   dot.className="dot stale"; st.textContent="Fetching\u2026";
   if(spinner){ el("tbody").innerHTML='<tr><td colspan="13"><div class="empty"><div class="spin"></div>Loading pipeline\u2026</div></td></tr>'; }
 
-  var urls=[CONFIG.CSV_URL,CONFIG.CSV_FALLBACK], idx=0, lastErr="";
-
   function fail(msg){
     dot.className="dot err"; st.textContent="Load failed";
-    el("errBox").innerHTML='<div class="err-box"><b>Could not load the sheet.</b><br>'+esc(msg)+
-      '<br><br>Check that the sheet is still published to the web (File &rarr; Share &rarr; Publish to web), or that the <code>/data/deals.csv</code> redirect exists.</div>';
+    el("errBox").innerHTML='<div class="err-box"><b>Could not load the pipeline.</b><br>'+esc(msg)+
+      '<br><br>The dashboard reads from <code>/api/deals</code>. Check the Netlify function is deployed and that the sheet is still published to the web.</div>';
   }
-  function ok(text){
+
+  /* Front-end field name -> API field name. */
+  var KEYMAP={name:"name",address:"address",state:"state",broker:"broker",email:"email",
+    phone:"phone",year:"year",price:"price",units:"units",ppu:"ppu",stage:"stage",
+    priority:"priority",folder:"folder",url:"url",added:"added",changed:"stageChanged",source:"source"};
+
+  /* Rebuild a sheet-order row so CSV export and unknown columns still work. */
+  function rawRow(s){
+    var rev={}, out=[], k, i;
+    for(k in KEYMAP){ if(Object.prototype.hasOwnProperty.call(KEYMAP,k) && MAP[k]!=null){ rev[MAP[k]]=KEYMAP[k]; } }
+    for(i=0;i<HEADERS.length;i++){
+      if(rev[i]!=null && s[rev[i]]!=null){ out.push(String(s[rev[i]])); }
+      else if(s.extra && s.extra[HEADERS[i]]!=null){ out.push(String(s.extra[HEADERS[i]])); }
+      else { out.push(""); }
+    }
+    return out;
+  }
+
+  function ok(d){
     el("errBox").innerHTML="";
-    var raw=parseCSV(text), i, r, o;
-    if(!raw.length){ fail("Empty file"); return; }
-    HEADERS=raw[0].map(function(x){return x.trim();});
+    HEADERS=(d.columns||[]).slice();
     resolveHeaders(HEADERS);
     ROWS=[];
-    for(i=1;i<raw.length;i++){
-      r=raw[i];
-      if(r.length<2||!r.join("").trim()){continue;}
-      o={raw:r};
-      o.name=gv(r,"name"); o.address=gv(r,"address"); o.state=gv(r,"state");
-      o.broker=gv(r,"broker"); o.email=gv(r,"email"); o.phone=gv(r,"phone");
-      o.year=gv(r,"year"); o.stage=gv(r,"stage")||"\u2014"; o.priority=gv(r,"priority")||"\u2014";
-      o.folder=gv(r,"folder"); o.url=gv(r,"url"); o.source=gv(r,"source")||"\u2014";
-      o.price=num(gv(r,"price")); o.units=num(gv(r,"units")); o.ppu=num(gv(r,"ppu"));
+    var list=d.deals||[], i, s, o;
+    for(i=0;i<list.length;i++){
+      s=list[i]; o={};
+      o.name=s.name||""; o.address=s.address||""; o.state=s.state||"";
+      o.broker=s.broker||""; o.email=s.email||""; o.phone=s.phone||"";
+      o.year=s.year==null?"":String(s.year);
+      o.stage=s.stage||"\u2014"; o.priority=s.priority||"\u2014";
+      o.folder=s.folder||""; o.url=s.url||""; o.source=s.source||"\u2014";
+      o.price=s.price==null?null:s.price;
+      o.units=s.units==null?null:s.units;
+      o.ppu=s.ppu==null?null:s.ppu;
       if(o.ppu==null&&o.price!=null&&o.units){ o.ppu=o.price/o.units; }
-      o.added=pDate(gv(r,"added")); o.changed=pDate(gv(r,"changed"));
+      o.added=pDate(s.added); o.changed=pDate(s.stageChanged);
+      o.raw=rawRow(s);
       o._s=[o.name,o.address,o.state,o.broker,o.email,o.phone,o.source,o.stage,o.priority].join(" ").toLowerCase();
       o._idx=ROWS.length;
-      o._sheetRow=i+CONFIG.HEADER_ROWS;
+      o._sheetRow=s.sheetRow;
       ROWS.push(o);
     }
     dot.className="dot";
@@ -500,24 +513,29 @@ function load(spinner){
     if(!stateRead){ readState(); stateRead=true; }
     renderAll();
   }
-  function attempt(){
-    if(idx>=urls.length){ fail(lastErr); return; }
-    var u=urls[idx++];
-    fetch(u+(u.indexOf("?")>-1?"&":"?")+"_cb="+Date.now(),{cache:"no-store"})
-      .then(function(res){ if(!res.ok){throw new Error("HTTP "+res.status);} return res.text(); })
-      .then(function(t){ if(!t||t.trim().charAt(0)==="<"){throw new Error("Response was not CSV");} ok(t); })
-      .catch(function(e){ lastErr=e.message; attempt(); });
-  }
-  attempt();
+
+  /* Writes are enabled by the server, not by anything in this file. */
+  fetch(CONFIG.API_BASE+"/health",{cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var on = !!(j && j.data && j.data.writes === "enabled");
+      if(on !== WRITES_ENABLED){ WRITES_ENABLED = on; renderBanner(); }
+    })
+    .catch(function(){});
+
+  fetch(CONFIG.API_BASE+"/deals",{cache:"no-store"})
+    .then(function(r){ if(!r.ok){ throw new Error("HTTP "+r.status); } return r.json(); })
+    .then(function(j){ if(!j||!j.ok||!j.data){ throw new Error((j&&j.error)||"Unexpected API response"); } ok(j.data); })
+    .catch(function(e){ fail(e.message); });
 }
 
 /* ==================== WRITE ==================== */
 function postWrite(payload){
-  payload.token=CONFIG.WRITE_TOKEN;
   payload.sheet=CONFIG.SHEET_NAME;
-  return fetch(CONFIG.WRITE_ENDPOINT,{
+  /* No token here on purpose: the API injects it server side. */
+  return fetch(CONFIG.API_BASE+"/write",{
     method:"POST",
-    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify(payload)
   }).then(function(r){ return r.json(); });
 }
